@@ -1,24 +1,45 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'PR Cherry Pick'
+description:
+    'Cherry-picks commits from a merged PR, creating a new PR to a target branch'
+author: 'wireapp'
 
-# Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: 'heart'
-  color: 'red'
+    icon: 'copy'
+    color: 'purple'
 
-# Define your inputs here.
 inputs:
-  milliseconds:
-    description: 'Your input description here'
-    required: true
-    default: '1000'
+    target-branch:
+        description: 'Name of the branch that cherry-pick PRs should target'
+        required: true
+    pr-creator-token:
+        description:
+            'Personal Access Token used to create the PR. Uses default actions
+            token by default.'
+        required: false
+        default: ${{ github.token }}
+    submodule-name:
+        description: >
+            Optional submodule name. If set, the action will try to fast-forward
+            the submodule to the newest version possible, assuming it also has a
+            branch with the same target-branch.
+        required: false
+        default: ''
+    pr-assignee:
+        description:
+            '(optional) User ID to be assigned to the created PR. Will use the
+            author of the original PR by default'
+        required: false
+        default: ''
+    pr-labels:
+        description:
+            'Comma-separated list of labels to add to this PR. Empty by default'
+        required: false
+        default: ''
 
-# Define your outputs here.
 outputs:
-  time:
-    description: 'Your output description here'
+    pr-number:
+        description: 'The number of the created PR'
 
 runs:
-  using: node20
-  main: dist/index.js
+    using: node20
+    main: dist/index.js
