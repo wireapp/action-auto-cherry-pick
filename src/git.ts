@@ -9,7 +9,7 @@ import { PullRequest } from '@octokit/webhooks-types'
  * @param params
  * @return Promise<CommandResult>
  */
-export async function gitExec(params: string[]) {
+export async function gitExec(params: string[]): Promise<CommandResult> {
     const stdout: string[] = []
     const stderr: string[] = []
     const options = {
@@ -25,10 +25,10 @@ export async function gitExec(params: string[]) {
     }
     const gitPath = await io.which('git')
     const exitCode = await exec.exec(gitPath, params, options)
-    let result = new CommandResult()
+    const result = new CommandResult()
     result.exitCode = exitCode
     result.stdout = stdout.join('')
-    result.stderr = stdout.join('')
+    result.stderr = stderr.join('')
     if (result.exitCode !== 0) {
         console.error(
             `Git command error. ExitCode: ${result.exitCode}. Error: ${result.stderr}`
@@ -53,7 +53,7 @@ export async function fastForwardSubmodule(
     submoduleName: string,
     targetBranch: string,
     mergedPR: PullRequest
-) {
+): Promise<void> {
     await gitExec(['checkout', '-b', tempBranchName])
     await exec.exec('cd', [submoduleName])
     await exec.exec('ls', ['-l'])
@@ -64,14 +64,12 @@ export async function fastForwardSubmodule(
         '-m',
         `Update submodule ${submoduleName} to latest from ${targetBranch}`
     ])
+    const commitSha = mergedPR.merge_commit_sha
+    if (commitSha == null) {
+        throw Error('Unable to resolve merge commit reference')
+    }
     const lastCommitMessage = (
-        await gitExec([
-            'log',
-            '--format=%B',
-            '-n',
-            '1',
-            mergedPR.merge_commit_sha!
-        ])
+        await gitExec(['log', '--format=%B', '-n', '1', commitSha])
     ).stdout
     await exec.exec('cd', ['..'])
     await exec.exec('ls', ['-l'])
@@ -81,7 +79,7 @@ export async function fastForwardSubmodule(
 export async function configureGitUser(
     commitAuthorName: string,
     commitAuthorEmail: string
-) {
+): Promise<void> {
     await gitExec(['config', 'user.name', `"${commitAuthorName}"`])
     await gitExec(['config', 'user.email', `"${commitAuthorEmail}"`])
 }
@@ -92,14 +90,13 @@ export async function cherryPickChangesToNewBranch(
     newBranchName: string,
     hasSubmodule: boolean,
     submoduleName: string
-) {
+): Promise<void> {
+    const commitSha = mergedPR.merge_commit_sha
+    if (commitSha == null) {
+        throw Error('Unable to resolve merge commit reference')
+    }
     const originalAuthor = (
-        await gitExec([
-            'log',
-            '-1',
-            "--pretty=format:'%an <%ae>'",
-            mergedPR.merge_commit_sha!
-        ])
+        await gitExec(['log', '-1', "--pretty=format:'%an <%ae>'", commitSha])
     ).stdout
 
     const cherryPickCommit = (await gitExec(['rev-parse', 'HEAD'])).stdout
@@ -112,7 +109,7 @@ export async function cherryPickChangesToNewBranch(
         await gitExec(['add', '.'])
         let message = 'Commit with unresolved merge conflicts'
         if (hasSubmodule) {
-            message = message + ` outside of submodule '${submoduleName}'`
+            message = `${message} outside of submodule '${submoduleName}'`
         }
         await gitExec(['commit', '--author', originalAuthor, '-am', message])
     } else {

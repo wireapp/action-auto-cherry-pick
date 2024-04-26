@@ -27,7 +27,7 @@ export async function run(): Promise<void> {
         }
         const mergedPR = github.context.payload.pull_request as PullRequest
 
-        if (mergedPR.merged != true) {
+        if (mergedPR.merged !== true) {
             core.setFailed(
                 `Can't merge PR '${mergedPR.number}', as it was not merged.`
             )
@@ -41,11 +41,11 @@ export async function run(): Promise<void> {
             // Use the author of the original PR as the assignee of the cherry-pick
             prAssignee = mergedPR.user.login
         }
-        let labelsInput = core.getInput('pr-labels')
-        let prLabels: string[] = []
-        if (labelsInput !== '') {
-            prLabels = labelsInput.split(',')
-        }
+        // const labelsInput = core.getInput('pr-labels')
+        // let prLabels: string[] = []
+        // if (labelsInput !== '') {
+        //     prLabels = labelsInput.split(',')
+        // }
 
         // GH Actions bot email address
         // https://github.com/orgs/community/discussions/26560#discussioncomment-3252339
@@ -59,7 +59,7 @@ export async function run(): Promise<void> {
         const originalBranch = mergedPR.head.ref
         const newBranchName = originalBranch + newBranchSuffix
 
-        let changedFilePaths = await getListOfChangedFilePaths(
+        const changedFilePaths = await getListOfChangedFilePaths(
             targetBranch,
             hasSubmodule,
             submoduleName
@@ -95,13 +95,13 @@ export async function run(): Promise<void> {
             // Delete submodule update temporary branch
             await gitExec(['branch', '-D', tempBranchName])
         }
-        const resultPr = await createPullRequest(
+        const resultPrNumber = await createPullRequest(
             githubToken,
             mergedPR,
             newBranchName,
             targetBranch
         )
-        core.setOutput('pr-number', resultPr.data.number)
+        core.setOutput('pr-number', resultPrNumber)
     } catch (error) {
         // Fail the workflow run if an error occurs
         if (error instanceof Error) core.setFailed(error.message)

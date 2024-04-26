@@ -6,32 +6,32 @@ export async function createPullRequest(
     mergedPR: PullRequest,
     newBranchName: string,
     targetBranch: string
-) {
+): Promise<number> {
     const octokit = github.getOctokit(githubToken)
-    const owner = github.context.repo.owner
+    const repoOwner = github.context.repo.owner
     const repoName = github.context.repo.repo
     let originalPrBodyMessage = ''
     if (mergedPR.body != null && mergedPR.body.trim() !== '') {
-        originalPrBodyMessage =
-            'Original PR description:\n' +
-            '\n' +
-            '-----\n' +
-            (mergedPR.body || '')
+        originalPrBodyMessage = `Original PR description:\n
+            \n
+            -----\n
+            ${mergedPR.body}
+        `
     } else {
         originalPrBodyMessage = ''
     }
-    const prBody =
-        'This PR was automatically cherry-picked based on the following PR:\n' +
-        ` - #${mergedPR.number}\n` +
-        originalPrBodyMessage
-    const prTitle = mergedPR.title + '[Cherry-Pick]'
+    const prBody = `This PR was automatically cherry-picked based on the following PR:\n
+             - #${mergedPR.number}\n
+            ${originalPrBodyMessage}
+            `
+    const prTitle = `${mergedPR.title} [Cherry-Pick]`
     const resultPr = await octokit.rest.pulls.create({
-        owner: owner,
+        owner: repoOwner,
         repo: repoName,
         title: prTitle,
         head: newBranchName,
         base: targetBranch,
         body: prBody
     })
-    return resultPr
+    return resultPr.data.number
 }

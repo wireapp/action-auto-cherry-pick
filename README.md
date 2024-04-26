@@ -1,7 +1,8 @@
 ## Automatic cherry-picking
 
 Cherry-picks commits from a merged PR, creating a new PR to a target branch.
-Allows setting a name of a submodule and will automatically fast-forward it to also match the `target-branch`.
+Allows setting a name of a submodule and will automatically fast-forward it to
+also match the `target-branch`.
 
 Check [action.yml](action.yml) for a description of inputs and outputs.
 
@@ -31,7 +32,7 @@ jobs:
               uses: ./
               with:
                   target-branch: 'develop' # Branch which will receive the automatic cherry-picks
-                  
+
             - name: Get the output
               run:
                   echo "The created PR number is ${{

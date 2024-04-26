@@ -30433,13 +30433,13 @@ exports.getListOfChangedFilePaths = void 0;
 const git_1 = __nccwpck_require__(6350);
 async function getListOfChangedFilePaths(targetBranch, hasSubmodule, submoduleName) {
     const diffResult = (await (0, git_1.gitExec)(['diff', `origin/${targetBranch}`, '--name-only'])).stdout;
-    let changedFilePaths = diffResult.split('\n');
+    const changedFilePaths = diffResult.split('\n');
     if (diffResult === '') {
         return [];
     }
     if (hasSubmodule) {
         // Ignore all changes in the submodule
-        return changedFilePaths.filter(path => !path.startsWith(submoduleName + '/'));
+        return changedFilePaths.filter(path => !path.startsWith(`${submoduleName}/`));
     }
     return changedFilePaths;
 }
@@ -30503,10 +30503,10 @@ async function gitExec(params) {
     };
     const gitPath = await io.which('git');
     const exitCode = await exec.exec(gitPath, params, options);
-    let result = new CommandResult();
+    const result = new CommandResult();
     result.exitCode = exitCode;
     result.stdout = stdout.join('');
-    result.stderr = stdout.join('');
+    result.stderr = stderr.join('');
     if (result.exitCode !== 0) {
         console.error(`Git command error. ExitCode: ${result.exitCode}. Error: ${result.stderr}`);
     }
@@ -30533,13 +30533,11 @@ async function fastForwardSubmodule(tempBranchName, submoduleName, targetBranch,
         '-m',
         `Update submodule ${submoduleName} to latest from ${targetBranch}`
     ]);
-    const lastCommitMessage = (await gitExec([
-        'log',
-        '--format=%B',
-        '-n',
-        '1',
-        mergedPR.merge_commit_sha
-    ])).stdout;
+    const commitSha = mergedPR.merge_commit_sha;
+    if (commitSha == null) {
+        throw Error('Unable to resolve merge commit reference');
+    }
+    const lastCommitMessage = (await gitExec(['log', '--format=%B', '-n', '1', commitSha])).stdout;
     await exec.exec('cd', ['..']);
     await exec.exec('ls', ['-l']);
     await gitExec(['commit', '-m', lastCommitMessage]);
@@ -30551,12 +30549,11 @@ async function configureGitUser(commitAuthorName, commitAuthorEmail) {
 }
 exports.configureGitUser = configureGitUser;
 async function cherryPickChangesToNewBranch(mergedPR, targetBranch, newBranchName, hasSubmodule, submoduleName) {
-    const originalAuthor = (await gitExec([
-        'log',
-        '-1',
-        "--pretty=format:'%an <%ae>'",
-        mergedPR.merge_commit_sha
-    ])).stdout;
+    const commitSha = mergedPR.merge_commit_sha;
+    if (commitSha == null) {
+        throw Error('Unable to resolve merge commit reference');
+    }
+    const originalAuthor = (await gitExec(['log', '-1', "--pretty=format:'%an <%ae>'", commitSha])).stdout;
     const cherryPickCommit = (await gitExec(['rev-parse', 'HEAD'])).stdout;
     await gitExec(['checkout', targetBranch]);
     await gitExec(['checkout', '-b', newBranchName]);
@@ -30567,7 +30564,7 @@ async function cherryPickChangesToNewBranch(mergedPR, targetBranch, newBranchNam
         await gitExec(['add', '.']);
         let message = 'Commit with unresolved merge conflicts';
         if (hasSubmodule) {
-            message = message + ` outside of submodule '${submoduleName}'`;
+            message = `${message} outside of submodule '${submoduleName}'`;
         }
         await gitExec(['commit', '--author', originalAuthor, '-am', message]);
     }
@@ -30639,7 +30636,7 @@ async function run() {
             return;
         }
         const mergedPR = github.context.payload.pull_request;
-        if (mergedPR.merged != true) {
+        if (mergedPR.merged !== true) {
             core.setFailed(`Can't merge PR '${mergedPR.number}', as it was not merged.`);
             return;
         }
@@ -30651,11 +30648,11 @@ async function run() {
             // Use the author of the original PR as the assignee of the cherry-pick
             prAssignee = mergedPR.user.login;
         }
-        let labelsInput = core.getInput('pr-labels');
-        let prLabels = [];
-        if (labelsInput !== '') {
-            prLabels = labelsInput.split(',');
-        }
+        // const labelsInput = core.getInput('pr-labels')
+        // let prLabels: string[] = []
+        // if (labelsInput !== '') {
+        //     prLabels = labelsInput.split(',')
+        // }
         // GH Actions bot email address
         // https://github.com/orgs/community/discussions/26560#discussioncomment-3252339
         const commitAuthorName = 'GitHub Actions';
@@ -30664,7 +30661,7 @@ async function run() {
         const newBranchSuffix = '-cherry-pick';
         const originalBranch = mergedPR.head.ref;
         const newBranchName = originalBranch + newBranchSuffix;
-        let changedFilePaths = await (0, diff_1.getListOfChangedFilePaths)(targetBranch, hasSubmodule, submoduleName);
+        const changedFilePaths = await (0, diff_1.getListOfChangedFilePaths)(targetBranch, hasSubmodule, submoduleName);
         await (0, git_1.configureGitUser)(commitAuthorName, commitAuthorEmail);
         if (changedFilePaths.length === 0) {
             // no changes
@@ -30680,8 +30677,8 @@ async function run() {
             // Delete submodule update temporary branch
             await (0, git_1.gitExec)(['branch', '-D', tempBranchName]);
         }
-        const resultPr = await (0, pr_1.createPullRequest)(githubToken, mergedPR, newBranchName, targetBranch);
-        core.setOutput('pr-number', resultPr.data.number);
+        const resultPrNumber = await (0, pr_1.createPullRequest)(githubToken, mergedPR, newBranchName, targetBranch);
+        core.setOutput('pr-number', resultPrNumber);
     }
     catch (error) {
         // Fail the workflow run if an error occurs
@@ -30727,32 +30724,33 @@ exports.createPullRequest = void 0;
 const github = __importStar(__nccwpck_require__(5438));
 async function createPullRequest(githubToken, mergedPR, newBranchName, targetBranch) {
     const octokit = github.getOctokit(githubToken);
-    const owner = github.context.repo.owner;
+    const repoOwner = github.context.repo.owner;
     const repoName = github.context.repo.repo;
     let originalPrBodyMessage = '';
     if (mergedPR.body != null && mergedPR.body.trim() !== '') {
-        originalPrBodyMessage =
-            'Original PR description:\n' +
-                '\n' +
-                '-----\n' +
-                (mergedPR.body || '');
+        originalPrBodyMessage = `Original PR description:\n
+            \n
+            -----\n
+            ${mergedPR.body}
+        `;
     }
     else {
         originalPrBodyMessage = '';
     }
-    const prBody = 'This PR was automatically cherry-picked based on the following PR:\n' +
-        ` - #${mergedPR.number}\n` +
-        originalPrBodyMessage;
-    const prTitle = mergedPR.title + '[Cherry-Pick]';
+    const prBody = `This PR was automatically cherry-picked based on the following PR:\n
+             - #${mergedPR.number}\n
+            ${originalPrBodyMessage}
+            `;
+    const prTitle = `${mergedPR.title} [Cherry-Pick]`;
     const resultPr = await octokit.rest.pulls.create({
-        owner: owner,
+        owner: repoOwner,
         repo: repoName,
         title: prTitle,
         head: newBranchName,
         base: targetBranch,
         body: prBody
     });
-    return resultPr;
+    return resultPr.data.number;
 }
 exports.createPullRequest = createPullRequest;
 
