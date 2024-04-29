@@ -30508,9 +30508,8 @@ async function gitExec(params) {
     result.stdout = stdout.join('');
     result.stderr = stderr.join('');
     if (result.exitCode !== 0) {
-        console.error(`Git command error. ExitCode: ${result.exitCode}. Error: ${result.stderr}`);
+        console.error(`Git command error. ExitCode: ${result.exitCode}.`);
     }
-    console.log(`Git command exitCode: ${result.exitCode} output: ${result.stdout}`);
     result.stdout = result.stdout.trim();
     result.stderr = result.stderr.trim();
     return result;
@@ -30628,8 +30627,8 @@ const diff_1 = __nccwpck_require__(4275);
  */
 async function run() {
     try {
-        const payload = JSON.stringify(github.context.payload, undefined, 2);
-        console.debug(`Event Payload: ${payload}`);
+        // const payload = JSON.stringify(github.context.payload, undefined, 2)
+        // console.debug(`Event Payload: ${payload}`)
         if (github.context.payload.pull_request == null) {
             core.setFailed('Action not running in a merged-pr event! Make sure to run only on PR events');
             return;
