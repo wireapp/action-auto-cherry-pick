@@ -16,8 +16,8 @@ import { getListOfChangedFilePaths } from './diff'
  */
 export async function run(): Promise<void> {
     try {
-        const payload = JSON.stringify(github.context.payload, undefined, 2)
-        console.debug(`Event Payload: ${payload}`)
+        // const payload = JSON.stringify(github.context.payload, undefined, 2)
+        // console.debug(`Event Payload: ${payload}`)
 
         if (github.context.payload.pull_request == null) {
             core.setFailed(

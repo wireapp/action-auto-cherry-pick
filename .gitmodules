@@ -1,3 +1,0 @@
-[submodule "this-is-another-test"]
-	path = this-is-another-test
-	url = git@github.com:wireapp/this-is-another-test.git
