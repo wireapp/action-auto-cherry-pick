@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { PullRequest } from '@octokit/webhooks-types'
-import { createPullRequest } from './pr'
+import { Label, PullRequest } from '@octokit/webhooks-types'
+import { addLabels, createPullRequest } from './pr'
 import {
     cherryPickChangesToNewBranch,
     configureGitUser,
@@ -41,11 +41,11 @@ export async function run(): Promise<void> {
             // Use the author of the original PR as the assignee of the cherry-pick
             prAssignee = mergedPR.user.login
         }
-        // const labelsInput = core.getInput('pr-labels')
-        // let prLabels: string[] = []
-        // if (labelsInput !== '') {
-        //     prLabels = labelsInput.split(',')
-        // }
+        const labelsInput = core.getInput('pr-labels')
+        let addedLabels: string[] = []
+        if (labelsInput !== '') {
+            addedLabels = labelsInput.split(',')
+        }
 
         // GH Actions bot email address
         // https://github.com/orgs/community/discussions/26560#discussioncomment-3252339
@@ -101,6 +101,17 @@ export async function run(): Promise<void> {
             newBranchName,
             targetBranch
         )
+
+        const inheritedLabels = mergedPR.labels.map(
+            (label: Label) => label.name
+        )
+
+        await addLabels(
+            githubToken,
+            resultPrNumber,
+            inheritedLabels.concat(addedLabels)
+        )
+
         core.setOutput('pr-number', resultPrNumber)
     } catch (error) {
         // Fail the workflow run if an error occurs
