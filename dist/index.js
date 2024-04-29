@@ -30731,19 +30731,13 @@ async function createPullRequest(githubToken, mergedPR, prTitle, newBranchName, 
     const repoName = github.context.repo.repo;
     let originalPrBodyMessage = '';
     if (mergedPR.body != null && mergedPR.body.trim() !== '') {
-        originalPrBodyMessage = `Original PR description:\n
-            \n
-            -----\n
-            ${mergedPR.body}
-        `;
+        originalPrBodyMessage = `Original PR description:\n\n-----\n + ${mergedPR.body}`;
     }
     else {
         originalPrBodyMessage = '';
     }
-    const prBody = `This PR was automatically cherry-picked based on the following PR:\n
-             - #${mergedPR.number}\n
-            ${originalPrBodyMessage}
-            `;
+    const prBody = 'This PR was automatically cherry-picked based on the following PR:\n' +
+        ` - #${mergedPR.number}\n${originalPrBodyMessage}`;
     const resultPr = await octokit.rest.pulls.create({
         owner: repoOwner,
         repo: repoName,
