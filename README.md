@@ -26,12 +26,15 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
+                  submodules: recursive #If you need to operate on submodules
 
             - name: Cherry pick
               id: cherry-pick
               uses: ./
               with:
                   target-branch: 'develop' # Branch which will receive the automatic cherry-picks
+                  submodule-name: 'nameOfTheSubmodule' # If you want the action to fast-forward the submodule
+                  pr-title-suffix: '🍒'
 
             - name: Get the output
               run:
