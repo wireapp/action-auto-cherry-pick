@@ -30530,7 +30530,8 @@ async function fastForwardSubmodule(tempBranchName, submoduleName, targetBranch,
     await gitExec([
         'commit',
         '-m',
-        `Update submodule ${submoduleName} to latest from ${targetBranch}`
+        `Update submodule ${submoduleName} to latest from ${targetBranch}`,
+        '--allow-empty'
     ]);
     const commitSha = mergedPR.merge_commit_sha;
     if (commitSha == null) {
