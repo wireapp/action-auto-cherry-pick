@@ -55,3 +55,23 @@ export async function addLabels(
         labels: labelsToAdd
     })
 }
+
+export async function addAssignee(
+    githubToken: string,
+    issueNumber: number,
+    assigneeUserName: string
+): Promise<void> {
+    if (assigneeUserName.length === 0) {
+        console.info('Skipping addition of assignee, as passed value is empty')
+        return
+    }
+    const octokit = github.getOctokit(githubToken)
+    const repoOwner = github.context.repo.owner
+    const repoName = github.context.repo.repo
+    await octokit.rest.issues.addAssignees({
+        owner: repoOwner,
+        repo: repoName,
+        issue_number: issueNumber,
+        assignees: [assigneeUserName]
+    })
+}
