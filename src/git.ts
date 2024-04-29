@@ -57,9 +57,8 @@ export async function fastForwardSubmodule(
     await gitExec(['checkout', '-b', tempBranchName])
     await gitExec(['-C', submoduleName, 'checkout', targetBranch])
     await gitExec(['-C', submoduleName, 'pull', 'origin', targetBranch])
+    await gitExec(['add', submoduleName])
     await gitExec([
-        '-C',
-        submoduleName,
         'commit',
         '-m',
         `Update submodule ${submoduleName} to latest from ${targetBranch}`
@@ -69,16 +68,9 @@ export async function fastForwardSubmodule(
         throw Error('Unable to resolve merge commit reference')
     }
     const lastCommitMessage = (
-        await gitExec([
-            '-C',
-            submoduleName,
-            'log',
-            '--format=%B',
-            '-n',
-            '1',
-            commitSha
-        ])
+        await gitExec(['log', '--format=%B', '-n', '1', commitSha])
     ).stdout
+    await gitExec(['reset', '--soft', 'HEAD~2'])
     await gitExec(['commit', '-m', lastCommitMessage])
 }
 
@@ -110,7 +102,7 @@ export async function cherryPickChangesToNewBranch(
     await gitExec(['checkout', '-b', newBranchName])
     const cherryPickResult = (await gitExec(['cherry-pick', cherryPickCommit]))
         .stdout
-    const hasConflicts = cherryPickResult.includes('Merge conflict in')
+    const hasConflicts = cherryPickResult.includes('CONFLICT')
     if (hasConflicts) {
         await gitExec(['add', '.'])
         let message = 'Commit with unresolved merge conflicts'
