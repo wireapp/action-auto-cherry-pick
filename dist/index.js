@@ -30648,11 +30648,11 @@ async function run() {
             // Use the author of the original PR as the assignee of the cherry-pick
             prAssignee = mergedPR.user.login;
         }
-        // const labelsInput = core.getInput('pr-labels')
-        // let prLabels: string[] = []
-        // if (labelsInput !== '') {
-        //     prLabels = labelsInput.split(',')
-        // }
+        const labelsInput = core.getInput('pr-labels');
+        let addedLabels = [];
+        if (labelsInput !== '') {
+            addedLabels = labelsInput.split(',');
+        }
         // GH Actions bot email address
         // https://github.com/orgs/community/discussions/26560#discussioncomment-3252339
         const commitAuthorName = 'GitHub Actions';
@@ -30678,6 +30678,8 @@ async function run() {
             await (0, git_1.gitExec)(['branch', '-D', tempBranchName]);
         }
         const resultPrNumber = await (0, pr_1.createPullRequest)(githubToken, mergedPR, newBranchName, targetBranch);
+        const inheritedLabels = mergedPR.labels.map((label) => label.name);
+        await (0, pr_1.addLabels)(githubToken, resultPrNumber, inheritedLabels.concat(addedLabels));
         core.setOutput('pr-number', resultPrNumber);
     }
     catch (error) {
@@ -30720,7 +30722,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createPullRequest = void 0;
+exports.addLabels = exports.createPullRequest = void 0;
 const github = __importStar(__nccwpck_require__(5438));
 async function createPullRequest(githubToken, mergedPR, newBranchName, targetBranch) {
     const octokit = github.getOctokit(githubToken);
@@ -30753,6 +30755,22 @@ async function createPullRequest(githubToken, mergedPR, newBranchName, targetBra
     return resultPr.data.number;
 }
 exports.createPullRequest = createPullRequest;
+async function addLabels(githubToken, issueNumber, labelsToAdd) {
+    if (labelsToAdd.length === 0) {
+        console.info('Skipping addition of labels, as none are needed');
+        return;
+    }
+    const octokit = github.getOctokit(githubToken);
+    const repoOwner = github.context.repo.owner;
+    const repoName = github.context.repo.repo;
+    await octokit.rest.issues.addLabels({
+        owner: repoOwner,
+        repo: repoName,
+        issue_number: issueNumber,
+        labels: labelsToAdd
+    });
+}
+exports.addLabels = addLabels;
 
 
 /***/ }),

@@ -35,3 +35,23 @@ export async function createPullRequest(
     })
     return resultPr.data.number
 }
+
+export async function addLabels(
+    githubToken: string,
+    issueNumber: number,
+    labelsToAdd: string[]
+): Promise<void> {
+    if (labelsToAdd.length === 0) {
+        console.info('Skipping addition of labels, as none are needed')
+        return
+    }
+    const octokit = github.getOctokit(githubToken)
+    const repoOwner = github.context.repo.owner
+    const repoName = github.context.repo.repo
+    await octokit.rest.issues.addLabels({
+        owner: repoOwner,
+        repo: repoName,
+        issue_number: issueNumber,
+        labels: labelsToAdd
+    })
+}
