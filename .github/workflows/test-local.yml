@@ -22,6 +22,7 @@ jobs:
               with:
                   target-branch: 'target'
                   submodule-name: 'this-is-another-test'
+                  pr-labels: 'bug'
             - name: Get the output
               run:
                   echo "The created PR number is ${{
