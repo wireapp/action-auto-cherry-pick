@@ -27,7 +27,7 @@ inputs:
     pr-assignee:
         description:
             '(optional) User ID to be assigned to the created PR. Will use the
-            author of the original PR by default'
+            assignee of the original PR by default'
         required: false
         default: ''
     pr-labels:

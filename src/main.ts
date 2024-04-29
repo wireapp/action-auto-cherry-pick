@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { Label, PullRequest } from '@octokit/webhooks-types'
-import { addLabels, createPullRequest } from './pr'
+import { addAssignee, addLabels, createPullRequest } from './pr'
 import {
     cherryPickChangesToNewBranch,
     configureGitUser,
@@ -37,9 +37,9 @@ export async function run(): Promise<void> {
         const githubToken = core.getInput('pr-creator-token')
         const submoduleName = core.getInput('submodule-name')
         let prAssignee = core.getInput('pr-assignee')
-        if (prAssignee === '') {
-            // Use the author of the original PR as the assignee of the cherry-pick
-            prAssignee = mergedPR.user.login
+        if (prAssignee === '' && mergedPR.assignee != null) {
+            // Use the assignee of the original PR as the assignee of the cherry-pick
+            prAssignee = mergedPR.assignee.login
         }
         const labelsInput = core.getInput('pr-labels')
         let addedLabels: string[] = []
@@ -111,6 +111,8 @@ export async function run(): Promise<void> {
             resultPrNumber,
             inheritedLabels.concat(addedLabels)
         )
+
+        await addAssignee(githubToken, resultPrNumber, prAssignee)
 
         core.setOutput('pr-number', resultPrNumber)
     } catch (error) {
