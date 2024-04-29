@@ -30641,6 +30641,7 @@ async function run() {
         const targetBranch = core.getInput('target-branch');
         const githubToken = core.getInput('pr-creator-token');
         const submoduleName = core.getInput('submodule-name');
+        const prTitleSuffix = core.getInput('pr-title-suffix');
         let prAssignee = core.getInput('pr-assignee');
         if (prAssignee === '' && mergedPR.assignee != null) {
             // Use the assignee of the original PR as the assignee of the cherry-pick
@@ -30675,7 +30676,8 @@ async function run() {
             // Delete submodule update temporary branch
             await (0, git_1.gitExec)(['branch', '-D', tempBranchName]);
         }
-        const resultPrNumber = await (0, pr_1.createPullRequest)(githubToken, mergedPR, newBranchName, targetBranch);
+        const prTitle = `${mergedPR.title} ${prTitleSuffix}`;
+        const resultPrNumber = await (0, pr_1.createPullRequest)(githubToken, mergedPR, prTitle, newBranchName, targetBranch);
         const inheritedLabels = mergedPR.labels.map((label) => label.name);
         await (0, pr_1.addLabels)(githubToken, resultPrNumber, inheritedLabels.concat(addedLabels));
         await (0, pr_1.addAssignee)(githubToken, resultPrNumber, prAssignee);
@@ -30723,7 +30725,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.addAssignee = exports.addLabels = exports.createPullRequest = void 0;
 const github = __importStar(__nccwpck_require__(5438));
-async function createPullRequest(githubToken, mergedPR, newBranchName, targetBranch) {
+async function createPullRequest(githubToken, mergedPR, prTitle, newBranchName, targetBranch) {
     const octokit = github.getOctokit(githubToken);
     const repoOwner = github.context.repo.owner;
     const repoName = github.context.repo.repo;
@@ -30742,7 +30744,6 @@ async function createPullRequest(githubToken, mergedPR, newBranchName, targetBra
              - #${mergedPR.number}\n
             ${originalPrBodyMessage}
             `;
-    const prTitle = `${mergedPR.title} [Cherry-Pick]`;
     const resultPr = await octokit.rest.pulls.create({
         owner: repoOwner,
         repo: repoName,

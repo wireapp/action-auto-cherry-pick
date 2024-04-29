@@ -35,6 +35,12 @@ inputs:
             'Comma-separated list of labels to add to this PR. Empty by default'
         required: false
         default: ''
+    pr-title-suffix:
+        description:
+            '(optional) suffix to be added to the title of the created PR.
+            [Cherry-Pick] by default'
+        required: false
+        default: '[Cherry-Pick]'
 
 outputs:
     pr-number:

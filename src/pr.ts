@@ -4,6 +4,7 @@ import * as github from '@actions/github'
 export async function createPullRequest(
     githubToken: string,
     mergedPR: PullRequest,
+    prTitle: string,
     newBranchName: string,
     targetBranch: string
 ): Promise<number> {
@@ -24,7 +25,6 @@ export async function createPullRequest(
              - #${mergedPR.number}\n
             ${originalPrBodyMessage}
             `
-    const prTitle = `${mergedPR.title} [Cherry-Pick]`
     const resultPr = await octokit.rest.pulls.create({
         owner: repoOwner,
         repo: repoName,
