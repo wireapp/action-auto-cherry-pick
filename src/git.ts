@@ -30,13 +30,8 @@ export async function gitExec(params: string[]): Promise<CommandResult> {
     result.stdout = stdout.join('')
     result.stderr = stderr.join('')
     if (result.exitCode !== 0) {
-        console.error(
-            `Git command error. ExitCode: ${result.exitCode}. Error: ${result.stderr}`
-        )
+        console.error(`Git command error. ExitCode: ${result.exitCode}.`)
     }
-    console.log(
-        `Git command exitCode: ${result.exitCode} output: ${result.stdout}`
-    )
     result.stdout = result.stdout.trim()
     result.stderr = result.stderr.trim()
     return result
