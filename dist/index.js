@@ -30524,11 +30524,11 @@ class CommandResult {
 exports.CommandResult = CommandResult;
 async function fastForwardSubmodule(tempBranchName, submoduleName, targetBranch, mergedPR) {
     await gitExec(['checkout', '-b', tempBranchName]);
-    await exec.exec('cd', [submoduleName]);
-    await exec.exec('ls', ['-l']);
-    await gitExec(['checkout', targetBranch]);
-    await gitExec(['pull', 'origin', targetBranch]);
+    await gitExec(['-C', submoduleName, 'checkout', targetBranch]);
+    await gitExec(['-C', submoduleName, 'pull', 'origin', targetBranch]);
     await gitExec([
+        '-C',
+        submoduleName,
         'commit',
         '-m',
         `Update submodule ${submoduleName} to latest from ${targetBranch}`
@@ -30537,9 +30537,15 @@ async function fastForwardSubmodule(tempBranchName, submoduleName, targetBranch,
     if (commitSha == null) {
         throw Error('Unable to resolve merge commit reference');
     }
-    const lastCommitMessage = (await gitExec(['log', '--format=%B', '-n', '1', commitSha])).stdout;
-    await exec.exec('cd', ['..']);
-    await exec.exec('ls', ['-l']);
+    const lastCommitMessage = (await gitExec([
+        '-C',
+        submoduleName,
+        'log',
+        '--format=%B',
+        '-n',
+        '1',
+        commitSha
+    ])).stdout;
     await gitExec(['commit', '-m', lastCommitMessage]);
 }
 exports.fastForwardSubmodule = fastForwardSubmodule;
