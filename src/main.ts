@@ -36,6 +36,7 @@ export async function run(): Promise<void> {
         const targetBranch = core.getInput('target-branch')
         const githubToken = core.getInput('pr-creator-token')
         const submoduleName = core.getInput('submodule-name')
+        const prTitleSuffix = core.getInput('pr-title-suffix')
         let prAssignee = core.getInput('pr-assignee')
         if (prAssignee === '' && mergedPR.assignee != null) {
             // Use the assignee of the original PR as the assignee of the cherry-pick
@@ -95,9 +96,11 @@ export async function run(): Promise<void> {
             // Delete submodule update temporary branch
             await gitExec(['branch', '-D', tempBranchName])
         }
+        const prTitle = `${mergedPR.title} ${prTitleSuffix}`
         const resultPrNumber = await createPullRequest(
             githubToken,
             mergedPR,
+            prTitle,
             newBranchName,
             targetBranch
         )
