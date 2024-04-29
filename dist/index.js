@@ -30650,9 +30650,9 @@ async function run() {
         const githubToken = core.getInput('pr-creator-token');
         const submoduleName = core.getInput('submodule-name');
         let prAssignee = core.getInput('pr-assignee');
-        if (prAssignee === '') {
-            // Use the author of the original PR as the assignee of the cherry-pick
-            prAssignee = mergedPR.user.login;
+        if (prAssignee === '' && mergedPR.assignee != null) {
+            // Use the assignee of the original PR as the assignee of the cherry-pick
+            prAssignee = mergedPR.assignee.login;
         }
         const labelsInput = core.getInput('pr-labels');
         let addedLabels = [];
@@ -30686,6 +30686,7 @@ async function run() {
         const resultPrNumber = await (0, pr_1.createPullRequest)(githubToken, mergedPR, newBranchName, targetBranch);
         const inheritedLabels = mergedPR.labels.map((label) => label.name);
         await (0, pr_1.addLabels)(githubToken, resultPrNumber, inheritedLabels.concat(addedLabels));
+        await (0, pr_1.addAssignee)(githubToken, resultPrNumber, prAssignee);
         core.setOutput('pr-number', resultPrNumber);
     }
     catch (error) {
@@ -30728,7 +30729,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.addLabels = exports.createPullRequest = void 0;
+exports.addAssignee = exports.addLabels = exports.createPullRequest = void 0;
 const github = __importStar(__nccwpck_require__(5438));
 async function createPullRequest(githubToken, mergedPR, newBranchName, targetBranch) {
     const octokit = github.getOctokit(githubToken);
@@ -30777,6 +30778,22 @@ async function addLabels(githubToken, issueNumber, labelsToAdd) {
     });
 }
 exports.addLabels = addLabels;
+async function addAssignee(githubToken, issueNumber, assigneeUserName) {
+    if (assigneeUserName.length === 0) {
+        console.info('Skipping addition of assignee, as passed value is empty');
+        return;
+    }
+    const octokit = github.getOctokit(githubToken);
+    const repoOwner = github.context.repo.owner;
+    const repoName = github.context.repo.repo;
+    await octokit.rest.issues.addAssignees({
+        owner: repoOwner,
+        repo: repoName,
+        issue_number: issueNumber,
+        assignees: [assigneeUserName]
+    });
+}
+exports.addAssignee = addAssignee;
 
 
 /***/ }),
