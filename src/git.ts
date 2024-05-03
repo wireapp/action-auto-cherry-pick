@@ -43,20 +43,32 @@ export class CommandResult {
     exitCode = 0
 }
 
-export async function fastForwardSubmodule(
+export async function fastForwardSubmodules(
     tempBranchName: string,
-    submoduleName: string,
-    targetBranch: string,
+    submodulesTargetBranch: string,
     mergedPR: PullRequest
 ): Promise<void> {
     await gitExec(['checkout', '-b', tempBranchName])
-    await gitExec(['-C', submoduleName, 'checkout', targetBranch])
-    await gitExec(['-C', submoduleName, 'pull', 'origin', targetBranch])
-    await gitExec(['add', submoduleName])
+    await gitExec([
+        'submodule',
+        'foreach',
+        'git',
+        'checkout',
+        submodulesTargetBranch
+    ])
+    await gitExec([
+        'submodule',
+        'foreach',
+        'git',
+        'pull',
+        'origin',
+        submodulesTargetBranch
+    ])
+    await gitExec(['add', '.'])
     await gitExec([
         'commit',
         '-m',
-        `Update submodule ${submoduleName} to latest from ${targetBranch}`,
+        `Update submodules to latest from ${submodulesTargetBranch}`,
         '--allow-empty'
     ])
     const commitSha = mergedPR.merge_commit_sha
@@ -82,8 +94,7 @@ export async function cherryPickChangesToNewBranch(
     mergedPR: PullRequest,
     targetBranch: string,
     newBranchName: string,
-    hasSubmodule: boolean,
-    submoduleName: string
+    hasSubmodule: boolean
 ): Promise<void> {
     const commitSha = mergedPR.merge_commit_sha
     if (commitSha == null) {
@@ -103,7 +114,7 @@ export async function cherryPickChangesToNewBranch(
         await gitExec(['add', '.'])
         let message = 'Commit with unresolved merge conflicts'
         if (hasSubmodule) {
-            message = `${message} outside of submodule '${submoduleName}'`
+            message = `${message} outside of submodules`
         }
         await gitExec(['commit', '--author', originalAuthor, '-am', message])
     } else {

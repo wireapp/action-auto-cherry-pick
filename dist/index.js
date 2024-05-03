@@ -30431,15 +30431,15 @@ function wrappy (fn, cb) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getListOfChangedFilePaths = void 0;
 const git_1 = __nccwpck_require__(6350);
-async function getListOfChangedFilePaths(targetBranch, hasSubmodule, submoduleName) {
+async function getListOfChangedFilePaths(targetBranch) {
+    // Ignores all changes in submodules
+    await (0, git_1.gitExec)(['config', '--global', 'diff.ignoreSubmodules', 'dirty']);
     const diffResult = (await (0, git_1.gitExec)(['diff', `origin/${targetBranch}`, '--name-only'])).stdout;
+    // Revert back the git config so this function doesn't leave a trace behind
+    await (0, git_1.gitExec)(['config', '--global', '--unset', 'diff.ignoreSubmodules']);
     const changedFilePaths = diffResult.split('\n');
     if (diffResult === '') {
         return [];
-    }
-    if (hasSubmodule) {
-        // Ignore all changes in the submodule
-        return changedFilePaths.filter(path => !path.startsWith(`${submoduleName}/`));
     }
     return changedFilePaths;
 }
@@ -30477,7 +30477,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.cherryPickChangesToNewBranch = exports.configureGitUser = exports.fastForwardSubmodule = exports.CommandResult = exports.gitExec = void 0;
+exports.cherryPickChangesToNewBranch = exports.configureGitUser = exports.fastForwardSubmodules = exports.CommandResult = exports.gitExec = void 0;
 const io = __importStar(__nccwpck_require__(7436));
 const exec = __importStar(__nccwpck_require__(1514));
 /**
@@ -30521,15 +30521,28 @@ class CommandResult {
     exitCode = 0;
 }
 exports.CommandResult = CommandResult;
-async function fastForwardSubmodule(tempBranchName, submoduleName, targetBranch, mergedPR) {
+async function fastForwardSubmodules(tempBranchName, submodulesTargetBranch, mergedPR) {
     await gitExec(['checkout', '-b', tempBranchName]);
-    await gitExec(['-C', submoduleName, 'checkout', targetBranch]);
-    await gitExec(['-C', submoduleName, 'pull', 'origin', targetBranch]);
-    await gitExec(['add', submoduleName]);
+    await gitExec([
+        'submodule',
+        'foreach',
+        'git',
+        'checkout',
+        submodulesTargetBranch
+    ]);
+    await gitExec([
+        'submodule',
+        'foreach',
+        'git',
+        'pull',
+        'origin',
+        submodulesTargetBranch
+    ]);
+    await gitExec(['add', '.']);
     await gitExec([
         'commit',
         '-m',
-        `Update submodule ${submoduleName} to latest from ${targetBranch}`,
+        `Update submodules to latest from ${submodulesTargetBranch}`,
         '--allow-empty'
     ]);
     const commitSha = mergedPR.merge_commit_sha;
@@ -30540,13 +30553,13 @@ async function fastForwardSubmodule(tempBranchName, submoduleName, targetBranch,
     await gitExec(['reset', '--soft', 'HEAD~2']);
     await gitExec(['commit', '-m', lastCommitMessage]);
 }
-exports.fastForwardSubmodule = fastForwardSubmodule;
+exports.fastForwardSubmodules = fastForwardSubmodules;
 async function configureGitUser(commitAuthorName, commitAuthorEmail) {
     await gitExec(['config', 'user.name', `"${commitAuthorName}"`]);
     await gitExec(['config', 'user.email', `"${commitAuthorEmail}"`]);
 }
 exports.configureGitUser = configureGitUser;
-async function cherryPickChangesToNewBranch(mergedPR, targetBranch, newBranchName, hasSubmodule, submoduleName) {
+async function cherryPickChangesToNewBranch(mergedPR, targetBranch, newBranchName, hasSubmodule) {
     const commitSha = mergedPR.merge_commit_sha;
     if (commitSha == null) {
         throw Error('Unable to resolve merge commit reference');
@@ -30562,7 +30575,7 @@ async function cherryPickChangesToNewBranch(mergedPR, targetBranch, newBranchNam
         await gitExec(['add', '.']);
         let message = 'Commit with unresolved merge conflicts';
         if (hasSubmodule) {
-            message = `${message} outside of submodule '${submoduleName}'`;
+            message = `${message} outside of submodules`;
         }
         await gitExec(['commit', '--author', originalAuthor, '-am', message]);
     }
@@ -30639,8 +30652,8 @@ async function run() {
             return;
         }
         const targetBranch = core.getInput('target-branch');
+        const submodulesTargetBranch = core.getInput('submodules-target-branch');
         const githubToken = core.getInput('pr-creator-token');
-        const submoduleName = core.getInput('submodule-name');
         const prTitleSuffix = core.getInput('pr-title-suffix');
         let prAssignee = core.getInput('pr-assignee');
         if (prAssignee === '' && mergedPR.assignee != null) {
@@ -30656,11 +30669,11 @@ async function run() {
         // https://github.com/orgs/community/discussions/26560#discussioncomment-3252339
         const commitAuthorName = 'GitHub Actions';
         const commitAuthorEmail = '41898282+github-actions[bot]@users.noreply.github.com';
-        const hasSubmodule = submoduleName !== '';
+        const shouldFastForwardSubmodules = submodulesTargetBranch !== '';
         const newBranchSuffix = '-cherry-pick';
         const originalBranch = mergedPR.head.ref;
         const newBranchName = originalBranch + newBranchSuffix;
-        const changedFilePaths = await (0, diff_1.getListOfChangedFilePaths)(targetBranch, hasSubmodule, submoduleName);
+        const changedFilePaths = await (0, diff_1.getListOfChangedFilePaths)(targetBranch);
         await (0, git_1.configureGitUser)(commitAuthorName, commitAuthorEmail);
         if (changedFilePaths.length === 0) {
             // no changes
@@ -30668,14 +30681,10 @@ async function run() {
             return;
         }
         const tempBranchName = 'temp-branch-for-cherry-pick';
-        if (hasSubmodule) {
-            await (0, git_1.fastForwardSubmodule)(tempBranchName, submoduleName, targetBranch, mergedPR);
+        if (shouldFastForwardSubmodules) {
+            await (0, git_1.fastForwardSubmodules)(tempBranchName, submodulesTargetBranch, mergedPR);
         }
-        await (0, git_1.cherryPickChangesToNewBranch)(mergedPR, targetBranch, newBranchName, hasSubmodule, submoduleName);
-        if (hasSubmodule) {
-            // Delete submodule update temporary branch
-            await (0, git_1.gitExec)(['branch', '-D', tempBranchName]);
-        }
+        await (0, git_1.cherryPickChangesToNewBranch)(mergedPR, targetBranch, newBranchName, shouldFastForwardSubmodules);
         const prTitle = `${mergedPR.title} ${prTitleSuffix}`;
         const resultPrNumber = await (0, pr_1.createPullRequest)(githubToken, mergedPR, prTitle, newBranchName, targetBranch);
         const inheritedLabels = mergedPR.labels.map((label) => label.name);

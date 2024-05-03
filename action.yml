@@ -17,11 +17,11 @@ inputs:
             token by default.'
         required: false
         default: ${{ github.token }}
-    submodule-name:
+    submodules-target-branch:
         description: >
-            Optional submodule name. If set, the action will try to fast-forward
-            the submodule to the newest version possible, assuming it also has a
-            branch with the same target-branch.
+            (optional) target branch for submodules. If set, the action will try
+            to fast-forward all submodules to the newest version possible of
+            this specified branch.
         required: false
         default: ''
     pr-assignee:
