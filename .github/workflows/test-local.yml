@@ -2,7 +2,7 @@ name: 'Cherry pick Release/candidate into develop'
 on:
     pull_request:
         branches:
-            - develop
+            - base-submodule
         types:
             - closed
 
@@ -20,7 +20,8 @@ jobs:
               id: cherry-pick
               uses: ./
               with:
-                  target-branch: 'main'
+                  target-branch: 'develop'
+                  submodules-target-branch: 'develop'
                   pr-title-suffix: '🍒'
             - name: Get the output
               run:
