@@ -33,7 +33,7 @@ jobs:
               uses: ./
               with:
                   target-branch: 'develop' # Branch which will receive the automatic cherry-picks
-                  submodule-name: 'nameOfTheSubmodule' # If you want the action to fast-forward the submodule
+                  submodules-target-branch: 'develop' # If you want the action to fast-forward the submodules to a specific branch
                   pr-title-suffix: '🍒'
 
             - name: Get the output
