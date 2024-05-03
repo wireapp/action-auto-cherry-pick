@@ -7,7 +7,7 @@ also match the `target-branch`.
 Check [action.yml](action.yml) for a description of inputs and outputs.
 
 ### Configuration sample:
-
+-test
 ```yaml
 name: 'Cherry pick Release/candidate into develop'
 on:
