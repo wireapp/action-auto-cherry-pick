@@ -5,8 +5,7 @@ import { addAssignee, addLabels, createPullRequest } from './pr'
 import {
     cherryPickChangesToNewBranch,
     configureGitUser,
-    fastForwardSubmodule,
-    gitExec
+    fastForwardSubmodules
 } from './git'
 import { getListOfChangedFilePaths } from './diff'
 
@@ -34,8 +33,8 @@ export async function run(): Promise<void> {
             return
         }
         const targetBranch = core.getInput('target-branch')
+        const submodulesTargetBranch = core.getInput('submodules-target-branch')
         const githubToken = core.getInput('pr-creator-token')
-        const submoduleName = core.getInput('submodule-name')
         const prTitleSuffix = core.getInput('pr-title-suffix')
         let prAssignee = core.getInput('pr-assignee')
         if (prAssignee === '' && mergedPR.assignee != null) {
@@ -54,17 +53,13 @@ export async function run(): Promise<void> {
         const commitAuthorEmail =
             '41898282+github-actions[bot]@users.noreply.github.com'
 
-        const hasSubmodule = submoduleName !== ''
+        const shouldFastForwardSubmodules = submodulesTargetBranch !== ''
         const newBranchSuffix = '-cherry-pick'
 
         const originalBranch = mergedPR.head.ref
         const newBranchName = originalBranch + newBranchSuffix
 
-        const changedFilePaths = await getListOfChangedFilePaths(
-            targetBranch,
-            hasSubmodule,
-            submoduleName
-        )
+        const changedFilePaths = await getListOfChangedFilePaths(targetBranch)
 
         await configureGitUser(commitAuthorName, commitAuthorEmail)
 
@@ -76,11 +71,10 @@ export async function run(): Promise<void> {
             return
         }
         const tempBranchName = 'temp-branch-for-cherry-pick'
-        if (hasSubmodule) {
-            await fastForwardSubmodule(
+        if (shouldFastForwardSubmodules) {
+            await fastForwardSubmodules(
                 tempBranchName,
-                submoduleName,
-                targetBranch,
+                submodulesTargetBranch,
                 mergedPR
             )
         }
@@ -88,14 +82,9 @@ export async function run(): Promise<void> {
             mergedPR,
             targetBranch,
             newBranchName,
-            hasSubmodule,
-            submoduleName
+            shouldFastForwardSubmodules
         )
 
-        if (hasSubmodule) {
-            // Delete submodule update temporary branch
-            await gitExec(['branch', '-D', tempBranchName])
-        }
         const prTitle = `${mergedPR.title} ${prTitleSuffix}`
         const resultPrNumber = await createPullRequest(
             githubToken,
