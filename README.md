@@ -30,7 +30,7 @@ jobs:
 
             - name: Cherry pick
               id: cherry-pick
-              uses: ./
+              uses: wireapp/action-auto-cherry-pick@v1.0.1
               with:
                   target-branch: 'develop' # Branch which will receive the automatic cherry-picks
                   submodules-target-branch: 'develop' # If you want the action to fast-forward the submodules to a specific branch
