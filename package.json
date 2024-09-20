@@ -1,7 +1,7 @@
 {
     "name": "wireapp-pr-cherry-pick",
     "description": "GitHub Action that performs automatic cherry-picks",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "wireapp",
     "private": true,
     "homepage": "https://github.com/wireapp/action-auto-cherry-pick",
