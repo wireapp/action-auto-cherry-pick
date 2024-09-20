@@ -35,7 +35,7 @@ export async function run(): Promise<void> {
         const targetBranch = core.getInput('target-branch')
         const submodulesTargetBranch = core.getInput('submodules-target-branch')
         const githubToken = core.getInput('pr-creator-token')
-        const prTitleSuffix = core.getInput('pr-title-suffix')
+        const prTitleSuffix = core.getInput('pr-title-suffix').trim()
         let prAssignee = core.getInput('pr-assignee')
         if (prAssignee === '' && mergedPR.assignee != null) {
             // Use the assignee of the original PR as the assignee of the cherry-pick
@@ -85,7 +85,7 @@ export async function run(): Promise<void> {
             shouldFastForwardSubmodules
         )
 
-        const prTitle = `${mergedPR.title} ${prTitleSuffix}`
+        const prTitle = prTitleSuffix.length > 0 ? `${mergedPR.title} ${prTitleSuffix}` : mergedPR.title
         const resultPrNumber = await createPullRequest(
             githubToken,
             mergedPR,
