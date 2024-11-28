@@ -85,7 +85,8 @@ export async function run(): Promise<void> {
             shouldFastForwardSubmodules
         )
 
-        const prTitle = prTitleSuffix.length > 0 ? `${mergedPR.title} ${prTitleSuffix}` : mergedPR.title
+        const originalPrTitle = mergedPR.title.trim()
+        const prTitle = prTitleSuffix.length > 0 ? `${originalPrTitle} ${prTitleSuffix}` : originalPrTitle
         const resultPrNumber = await createPullRequest(
             githubToken,
             mergedPR,
