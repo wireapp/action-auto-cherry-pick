@@ -42,5 +42,5 @@ jobs:
       - name: Get the output
         run:
           echo "The created PR number is ${{
-          steps.hello.outputs.pr-number }}"
+          steps.cherry-pick.outputs.pr-number }}"
 ```
