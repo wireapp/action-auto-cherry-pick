@@ -28,5 +28,4 @@ jobs:
                   pr-title-suffix: '🍒'
             - name: Get the output
               run:
-                  echo "The created PR number is ${{
-                  steps.hello.outputs.pr-number }}"
+                  echo "The created PR number is ${{ steps.cherry-pick.outputs.pr-number }}"
