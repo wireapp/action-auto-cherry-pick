@@ -1,10 +1,14 @@
 name: 'Cherry pick Release/candidate into develop'
+
 on:
     pull_request:
         branches:
             - develop
         types:
             - closed
+
+permissions:
+    pull-requests: write
 
 jobs:
     test-cherry-pick:
