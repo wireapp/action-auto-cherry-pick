@@ -30429,7 +30429,7 @@ function wrappy (fn, cb) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getListOfChangedFilePaths = void 0;
+exports.getListOfChangedFilePaths = getListOfChangedFilePaths;
 const git_1 = __nccwpck_require__(6350);
 async function getListOfChangedFilePaths(targetBranch) {
     // Ignores all changes in submodules
@@ -30443,7 +30443,6 @@ async function getListOfChangedFilePaths(targetBranch) {
     }
     return changedFilePaths;
 }
-exports.getListOfChangedFilePaths = getListOfChangedFilePaths;
 
 
 /***/ }),
@@ -30477,7 +30476,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.cherryPickChangesToNewBranch = exports.configureGitUser = exports.fastForwardSubmodules = exports.CommandResult = exports.gitExec = void 0;
+exports.CommandResult = void 0;
+exports.gitExec = gitExec;
+exports.fastForwardSubmodules = fastForwardSubmodules;
+exports.configureGitUser = configureGitUser;
+exports.cherryPickChangesToNewBranch = cherryPickChangesToNewBranch;
 const io = __importStar(__nccwpck_require__(7436));
 const exec = __importStar(__nccwpck_require__(1514));
 /**
@@ -30514,7 +30517,6 @@ async function gitExec(params) {
     result.stderr = result.stderr.trim();
     return result;
 }
-exports.gitExec = gitExec;
 class CommandResult {
     stdout = '';
     stderr = '';
@@ -30553,12 +30555,10 @@ async function fastForwardSubmodules(tempBranchName, submodulesTargetBranch, mer
     await gitExec(['reset', '--soft', 'HEAD~2']);
     await gitExec(['commit', '-m', lastCommitMessage]);
 }
-exports.fastForwardSubmodules = fastForwardSubmodules;
 async function configureGitUser(commitAuthorName, commitAuthorEmail) {
     await gitExec(['config', 'user.name', `"${commitAuthorName}"`]);
     await gitExec(['config', 'user.email', `"${commitAuthorEmail}"`]);
 }
-exports.configureGitUser = configureGitUser;
 async function cherryPickChangesToNewBranch(mergedPR, targetBranch, newBranchName, hasSubmodule) {
     const commitSha = mergedPR.merge_commit_sha;
     if (commitSha == null) {
@@ -30594,7 +30594,6 @@ async function cherryPickChangesToNewBranch(mergedPR, targetBranch, newBranchNam
         throw new Error(`Failure to push changes to ${newBranchName}. Exit code: ${result.exitCode}; Message: ${result.stderr}`);
     }
 }
-exports.cherryPickChangesToNewBranch = cherryPickChangesToNewBranch;
 
 
 /***/ }),
@@ -30628,7 +30627,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.run = void 0;
+exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const pr_1 = __nccwpck_require__(4480);
@@ -30654,7 +30653,7 @@ async function run() {
         const targetBranch = core.getInput('target-branch');
         const submodulesTargetBranch = core.getInput('submodules-target-branch');
         const githubToken = core.getInput('pr-creator-token');
-        const prTitleSuffix = core.getInput('pr-title-suffix');
+        const prTitleSuffix = core.getInput('pr-title-suffix').trim();
         let prAssignee = core.getInput('pr-assignee');
         if (prAssignee === '' && mergedPR.assignee != null) {
             // Use the assignee of the original PR as the assignee of the cherry-pick
@@ -30685,7 +30684,9 @@ async function run() {
             await (0, git_1.fastForwardSubmodules)(tempBranchName, submodulesTargetBranch, mergedPR);
         }
         await (0, git_1.cherryPickChangesToNewBranch)(mergedPR, targetBranch, newBranchName, shouldFastForwardSubmodules);
-        const prTitle = `${mergedPR.title} ${prTitleSuffix}`;
+        const prTitle = prTitleSuffix.length > 0
+            ? `${mergedPR.title} ${prTitleSuffix}`
+            : mergedPR.title;
         const resultPrNumber = await (0, pr_1.createPullRequest)(githubToken, mergedPR, prTitle, newBranchName, targetBranch);
         const inheritedLabels = mergedPR.labels.map((label) => label.name);
         await (0, pr_1.addLabels)(githubToken, resultPrNumber, inheritedLabels.concat(addedLabels));
@@ -30698,7 +30699,6 @@ async function run() {
             core.setFailed(error.message);
     }
 }
-exports.run = run;
 
 
 /***/ }),
@@ -30732,7 +30732,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.addAssignee = exports.addLabels = exports.createPullRequest = void 0;
+exports.createPullRequest = createPullRequest;
+exports.addLabels = addLabels;
+exports.addAssignee = addAssignee;
 const github = __importStar(__nccwpck_require__(5438));
 async function createPullRequest(githubToken, mergedPR, prTitle, newBranchName, targetBranch) {
     const octokit = github.getOctokit(githubToken);
@@ -30757,7 +30759,6 @@ async function createPullRequest(githubToken, mergedPR, prTitle, newBranchName, 
     });
     return resultPr.data.number;
 }
-exports.createPullRequest = createPullRequest;
 async function addLabels(githubToken, issueNumber, labelsToAdd) {
     if (labelsToAdd.length === 0) {
         console.info('Skipping addition of labels, as none are needed');
@@ -30773,7 +30774,6 @@ async function addLabels(githubToken, issueNumber, labelsToAdd) {
         labels: labelsToAdd
     });
 }
-exports.addLabels = addLabels;
 async function addAssignee(githubToken, issueNumber, assigneeUserName) {
     if (assigneeUserName.length === 0) {
         console.info('Skipping addition of assignee, as passed value is empty');
@@ -30789,7 +30789,6 @@ async function addAssignee(githubToken, issueNumber, assigneeUserName) {
         assignees: [assigneeUserName]
     });
 }
-exports.addAssignee = addAssignee;
 
 
 /***/ }),
